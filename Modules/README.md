@@ -1,2 +1,0 @@
-# BanMingModule
-some unity module
