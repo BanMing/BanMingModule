@@ -12,21 +12,22 @@ using UnityEngine.UI;
 public class TcpTest : MonoBehaviour {
 
     private InputField input;
-    private SmipleTCP smipleTCP;
+    private SampleTCP smipleTCP;
     private void Awake () {
-        smipleTCP = new SmipleTCP ();
+        smipleTCP = new SampleTCP ();
         smipleTCP.OnRegister ();
         input = GameObject.Find ("InputField").GetComponent<InputField> ();
     }
 
     public void Connect () {
-        smipleTCP.SendConnect ();
+        smipleTCP.SendConnect (AppConst.SocketAddress, AppConst.SocketPort);
     }
     private void OnDestroy () {
         smipleTCP.OnRemove ();
     }
     public void Send () {
         smipleTCP.SendMessage (System.Text.Encoding.Default.GetBytes (input.text));
+        input.text = "";
     }
 
 }

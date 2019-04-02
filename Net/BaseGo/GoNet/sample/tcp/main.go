@@ -6,13 +6,14 @@
 package main
 
 import (
+	"GoNet/sample/protocol"
 	"fmt"
 	"net"
-	"os"
 	"strings"
 )
 
-var MaxLen = 4096
+type TcpClient struct {
+}
 
 func main() {
 	service := ":7777"
@@ -25,12 +26,12 @@ func main() {
 		if err != nil {
 			continue
 		}
-		go handleClient(conn)
+		go handleClientTest(conn)
 	}
 }
 
 //分发数据
-func handleClient(conn net.Conn) {
+func handleClientTest(conn net.Conn) {
 	if conn == nil {
 		return
 	}
@@ -44,47 +45,28 @@ func handleClient(conn net.Conn) {
 			break
 		}
 		//消息长度
-		msgLength := bytesToUint16(buf)
-		if cnt >= int(msgLength)+2 {
-			inStr := strings.TrimSpace(string(buf[2 : 2+msgLength]))
-			fmt.Println("inStr:" + inStr)
+		//这里处理粘包的问题
+		msgLength := protocol.BytesToUint16(buf[:HeaderLen])
+		if cnt >= int(msgLength)+HeaderLen {
+			//这里超多包长的直接弃用
+			reciveData := buf[HeaderLen : HeaderLen+msgLength]
 			//todo:抛出消息到逻辑层
-
+			sendTest(conn, reciveData)
 		} else {
-		//
+			conn.Close()
+			fmt.Println("msg length error")
 		}
-
-		//fmt.Println(msgLength)
-
-		//send := []byte("sever:" + inStr)
-
-		//conn.Write()
-
-	}
-	//defer conn.Close()
-	//daytime := time.Now().String()
-	//conn.Write([]byte(daytime))
-}
-
-func checkError(err error) {
-	if err != nil {
-		fmt.Println(os.Stderr, "Fatal error:%s", err.Error())
-		os.Exit(1)
 	}
 }
 
-func Uint16ToBytes(n uint16) []byte {
-	return []byte{
-		byte(n),
-		byte(n >> 8),
-	}
-}
-
-//获得消息长度 byte转int16
-func bytesToUint16(array []byte) uint16 {
-	var data uint16 = 0
-	for i := 0; i < len(array); i++ {
-		data = data + uint16(uint(array[i])<<uint(8*i))
-	}
-	return data
+//测试发送
+func sendTest(conn net.Conn, reciveData []byte) {
+	inStr := strings.TrimSpace(string(reciveData))
+	fmt.Println("inStr:" + inStr)
+	send := []byte("sever:" + inStr)
+	sendLenB := protocol.Uint16ToBytes(uint16(len(send)))
+	temp := append(sendLenB, send...)
+	//fmt.Println("send length:" + strconv.Itoa(len(temp)))
+	//fmt.Println(temp)
+	conn.Write(temp)
 }

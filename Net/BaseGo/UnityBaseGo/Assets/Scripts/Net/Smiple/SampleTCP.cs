@@ -17,10 +17,11 @@ public enum DisType {
     Disconnect,
 }
 
-public class SmipleTCP {
+public class SampleTCP {
 
     //////////////////////////////////////////////////////////////////////////////Local//////////////////////////////////////////////////////////////////////////////////////////////////////////
     private TcpClient client = null;
+
     private NetworkStream outStream = null;
     private MemoryStream memoryStream = null;
     private BinaryReader reader;
@@ -28,7 +29,7 @@ public class SmipleTCP {
     private byte[] byteBuffer = new byte[MAX_READ];
 
     // Use this for initialization
-    public SmipleTCP () { }
+    public SampleTCP () { }
 
     // 连接网络
     private void connectServer (string host, int port) {
@@ -83,7 +84,7 @@ public class SmipleTCP {
                 client.GetStream ().BeginRead (byteBuffer, 0, MAX_READ, new AsyncCallback (onRead), null);
             }
         } catch (System.Exception e) {
-            // printBytes();
+            // printBytes ();
             onDisconnected (DisType.Exception, e.Message);
         }
     }
@@ -99,13 +100,13 @@ public class SmipleTCP {
     private void printBytes () {
         string returnStr = string.Empty;
         for (int i = 0; i < byteBuffer.Length; i++) {
-            returnStr += byteBuffer[i].ToString ("X2");
+            returnStr += byteBuffer[i].ToString ();
         }
         UnityEngine.Debug.Log ("byteBuffer:" + returnStr);
     }
 
     // 向链接写入数据流
-    void onWrite (IAsyncResult r) {
+    private void onWrite (IAsyncResult r) {
         try {
             outStream.EndWrite (r);
         } catch (Exception ex) {
@@ -115,14 +116,17 @@ public class SmipleTCP {
 
     // 接收到消息
     private void onReceive (byte[] bytes, int length) {
+        // UnityEngine.Debug.Log ("length:" + length + " bytes:" + bytes.Length);
         // 覆盖写入
         memoryStream.Seek (0, SeekOrigin.End);
         memoryStream.Write (bytes, 0, length);
-        //Reset to beginning
+        //复位位置到0
         memoryStream.Seek (0, SeekOrigin.Begin);
+        // printBytes ();
         while (remainingBytes () > 2) {
             // 消息的前2位是消息长度（长度0~65,535）
             ushort messageLen = reader.ReadUInt16 ();
+            // UnityEngine.Debug.Log ("messageLen:" + messageLen);
             if (remainingBytes () >= messageLen) {
                 MemoryStream ms = new MemoryStream ();
                 BinaryWriter writer = new BinaryWriter (ms);
@@ -167,11 +171,11 @@ public class SmipleTCP {
     }
 
     // 接收到消息
-    void onReceivedMessage (MemoryStream ms) {
+    private void onReceivedMessage (MemoryStream ms) {
         BinaryReader r = new BinaryReader (ms);
+        byte[] message = r.ReadBytes ((int) (ms.Length - ms.Position));
         // test
-        UnityEngine.Debug.Log ("onReceivedMessage:" + r.ReadString ());
-        // byte[] message = r.ReadBytes ((int) (ms.Length - ms.Position));
+        UnityEngine.Debug.Log ("onReceivedMessage:" + System.Text.UTF8Encoding.UTF8.GetString (message));
         //int msglen = message.Length;
 
         // ByteBuffer buffer = new ByteBuffer (message);
@@ -180,7 +184,7 @@ public class SmipleTCP {
     }
 
     // 会话发送
-    void sessionSend (byte[] bytes) {
+    private void sessionSend (byte[] bytes) {
         writeMessage (bytes);
     }
 
@@ -217,8 +221,8 @@ public class SmipleTCP {
     /// <summary>
     /// 发送连接请求
     /// </summary>
-    public void SendConnect () {
-        connectServer (AppConst.SocketAddress, AppConst.SocketPort);
+    public void SendConnect (string host, int port) {
+        connectServer (host, port);
     }
 
     /// <summary>
@@ -226,5 +230,12 @@ public class SmipleTCP {
     /// </summary>
     public void SendMessage (byte[] bytes) {
         sessionSend (bytes);
+    }
+
+    /// <summary>
+    /// 是否连接
+    /// </summary>
+    public bool IsConnect () {
+        return client.Connected;
     }
 }
